@@ -1,0 +1,6 @@
+@ManjeetFigma_HostAddress = http://localhost:5299
+
+GET {{ManjeetFigma_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
