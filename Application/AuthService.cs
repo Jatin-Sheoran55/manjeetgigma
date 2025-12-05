@@ -67,11 +67,15 @@ namespace Application
                 ExpiresAt = DateTime.UtcNow.AddMinutes(5),
             };
             await _otps.AddAsync(otp);
+          
 
-            Console.WriteLine($"[OTP] to {user.CountryCode}{user.PhoneNumber}:{code} ");
+            Console.WriteLine($"[OTP] to {user.CountryCode}{user.PhoneNumber}: {code}");
+            await Task.CompletedTask;
+            //Console.WriteLine($"[OTP] to {user.CountryCode}{user.PhoneNumber}:{code} ");
         }
-
+       
         public async Task verifyOtpAsync(VerifyOtpRequest request)
+        
         {
             var user = await _users.GetByPhoneAsync(request.CountryCode, request.PhoneNumber)
                 ?? throw new Exception("User not found");
@@ -118,7 +122,7 @@ namespace Application
         }
         private string GenerateJwtToken(User user)
         {
-            var secret = _config["Jwt:Secret"] ?? throw new Exception("JWT secret missing");
+            var secret = _config["Jwt:key"] ?? throw new Exception("JWT secret missing");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

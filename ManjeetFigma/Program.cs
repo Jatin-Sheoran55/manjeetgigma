@@ -1,69 +1,127 @@
-using System.Text;
-using Application;
-using Data;
-using Data.Repositorys;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-
-var builder = WebApplication.CreateBuilder(args);
-var config = builder.Configuration;
-
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
-var connection = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<ProjectContext>(option =>
-option.UseSqlServer(connection));
-
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IOtpRepository, OtpRepository>();
-
-
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddAuthentication(options =>
+using Microsoft.OpenApi.Models;
+using System.Text;
+using Data;
+using Data.Repositorys;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
+using Application;
+public class Program
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+    public static void Main(string[] args)
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = config["Jwt:Issuer"],
-        ValidAudience = config["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Secret"]))
-    };
-});
 
-//builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-var app = builder.Build();
-app.UseSwagger();
-app.UseSwaggerUI();
+        var builder = WebApplication.CreateBuilder(args);
 
-//var app = builder.Build();
+        // Add services to the container.
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    //app.MapOpenApi();
+        builder.Services.AddControllers();
+        // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+        builder.Services.AddOpenApi();
+
+        var connection = builder.Configuration.GetConnectionString("DefaultConnection");
+        builder.Services.AddDbContext<ProjectContext>(option =>
+        option.UseSqlServer(connection));
+
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IOtpRepository, OtpRepository>();
+
+
+        builder.Services.AddScoped<IAuthService, AuthService>();
+        //builder.Services.AddAuthentication(options =>
+        //{
+        //    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        //    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        //})
+        //.AddJwtBearer(options =>
+        //{
+        //    options.TokenValidationParameters = new TokenValidationParameters
+        //    {
+        //        ValidateIssuer = true,
+        //        ValidateAudience = true,
+        //        ValidateLifetime = true,
+        //        ValidateIssuerSigningKey = true,
+        //        ValidIssuer = config["Jwt:Issuer"],
+        //        ValidAudience = config["Jwt:Audience"],
+        //        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Secret"]))
+        //    };
+        //});
+
+        //builder.Services.AddControllers();
+
+
+        builder.Services.AddSwaggerGen(option =>
+        {
+            option.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
+
+            option.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "Enter JWT token. Example: Bearer {your token}"
+            });
+
+            option.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+        });
+
+        builder.Services.AddAuthentication("Bearer")
+            .AddJwtBearer("Bearer", option =>
+            {
+                var jwt = builder.Configuration.GetSection("Jwt");
+                option.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateAudience = true,
+                    ValidateIssuer = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true,
+
+                    ValidAudience = jwt["Audience"],
+                    ValidIssuer = jwt["Issuer"],
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                         Encoding.UTF8.GetBytes(jwt["key"])
+                        ),
+                };
+            });
+
+
+        var app = builder.Build();
+        app.UseSwagger();
+        app.UseSwaggerUI();
+
+        //var app = builder.Build();
+
+        // Configure the HTTP request pipeline.
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapOpenApi();
+        }
+
+        app.UseHttpsRedirection();
+
+        //app.UseAuthentication();
+        //app.UseAuthorization();
+        //app.UseAuthorization();
+        app.MapControllers();
+
+        app.Run();
+    }
 }
-
-app.UseHttpsRedirection();
-
-app.UseAuthentication();
-app.UseAuthorization();
-//app.UseAuthorization();
-app.MapControllers();
-
-app.Run();

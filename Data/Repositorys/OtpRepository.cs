@@ -30,7 +30,7 @@ namespace Data.Repositorys
         public async Task MakeUsedAsync(Otp otp)
         {
             otp.IsUsed = true;
-            _db.Otps.Add(otp);
+            _db.Otps.Update(otp);
             await _db.SaveChangesAsync();
         }
     }

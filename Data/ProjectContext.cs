@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Domain;
+﻿using Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace Data
 {
-    public class ProjectContext:DbContext
+    public class ProjectContext : DbContext
     {
         public ProjectContext(DbContextOptions<ProjectContext> opts) : base(opts) { }
         public DbSet<User> Users { get; set; }
